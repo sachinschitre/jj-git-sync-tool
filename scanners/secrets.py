@@ -148,8 +148,8 @@ class SecretScanner:
         if 're.compile' in context or 'regex' in context:
             return True
         
-        # Skip if it's in a git diff header
-        if 'commit ' in context or 'author:' in context or 'date:' in context:
+        # Skip if it's in a git diff header or commit message
+        if any(x in context for x in ['commit ', 'author:', 'date:', 'feat:', 'fix:', 'chore:', 'docs:']):
             return True
         
         # Skip if it's clearly a file path or URL
@@ -158,8 +158,8 @@ class SecretScanner:
         
         # Skip if it's a severity level or enum value (but only in specific contexts)
         if value.upper() in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']:
-            # Only skip if it's clearly in a dictionary or enum context
-            if ':' in context and ('=' in context or 'severity' in context or 'level' in context):
+            # Skip if it's in a dictionary definition, git diff, or commit message
+            if any(x in context for x in [':', '=', 'severity', 'level', 'commit', 'author', 'date', 'feat:', 'fix:', 'chore:', 'docs:']):
                 return True
         
         # Skip if it's in a comment
