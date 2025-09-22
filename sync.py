@@ -31,17 +31,43 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
     # Step 1: Export JJ commits into Git
     click.echo("Exporting JJ to Git...")
     try:
+        # First check if JJ is the correct version control tool
+        result = subprocess.run(
+            ["jj", "--version"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        # Check if this is the correct JJ tool (should contain "jj" version info)
+        if "jj" not in result.stdout.lower() and "version" not in result.stdout.lower():
+            click.echo("❌ Wrong 'jj' command found. Please install JJ version control system from https://github.com/jj-vcs/jj")
+            click.echo("   Current 'jj' command appears to be a different tool.")
+            return
+            
+        # Try the actual JJ git export command
         subprocess.run(
-            ["jj", "git", "export", "--to", git_dir],
+            ["jj", "git", "export"],
             cwd=jj_dir,
             check=True
         )
         click.echo("✅ JJ export successful")
     except subprocess.CalledProcessError as e:
         click.echo(f"❌ JJ export failed: {e}")
+        click.echo("💡 Make sure you have the correct JJ version control system installed")
+        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        # Continue to security scan even if JJ sync fails
+        if scan:
+            click.echo("\n⚠️  JJ sync failed, but continuing with security scan...")
+            run_security_scan_only(git_dir, scan_format, scan_commits)
         return
     except FileNotFoundError:
-        click.echo("❌ JJ command not found. Please ensure JJ is installed and in your PATH.")
+        click.echo("❌ JJ command not found. Please install JJ version control system.")
+        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        # Continue to security scan even if JJ sync fails
+        if scan:
+            click.echo("\n⚠️  JJ not found, but continuing with security scan...")
+            run_security_scan_only(git_dir, scan_format, scan_commits)
         return
 
     # Step 2: Import Git commits into JJ
@@ -55,9 +81,20 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
         click.echo("✅ JJ import successful")
     except subprocess.CalledProcessError as e:
         click.echo(f"❌ JJ import failed: {e}")
+        click.echo("💡 Make sure you have the correct JJ version control system installed")
+        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        # Continue to security scan even if JJ sync fails
+        if scan:
+            click.echo("\n⚠️  JJ import failed, but continuing with security scan...")
+            run_security_scan_only(git_dir, scan_format, scan_commits)
         return
     except FileNotFoundError:
-        click.echo("❌ JJ command not found. Please ensure JJ is installed and in your PATH.")
+        click.echo("❌ JJ command not found. Please install JJ version control system.")
+        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        # Continue to security scan even if JJ sync fails
+        if scan:
+            click.echo("\n⚠️  JJ not found, but continuing with security scan...")
+            run_security_scan_only(git_dir, scan_format, scan_commits)
         return
 
     click.echo("🎉 Sync complete!")
@@ -81,6 +118,29 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
                 
         except Exception as e:
             click.echo(f"❌ Security scan failed: {e}")
+
+
+def run_security_scan_only(git_dir, scan_format, scan_commits):
+    """
+    Run security scan without JJ sync (for when JJ is not available).
+    """
+    click.echo("🔍 Running security scan...")
+    try:
+        secrets = scan_recent_commits_for_secrets(git_dir, scan_commits)
+        report = generate_security_report(secrets, scan_format)
+        click.echo(report)
+        
+        # Count critical/high severity issues
+        critical_high = [s for s in secrets if s['severity'] in ['CRITICAL', 'HIGH']]
+        if critical_high:
+            click.echo(f"\n⚠️  Found {len(critical_high)} critical/high severity security issues!")
+            if scan_format == 'json':
+                click.echo("💡 Use --scan-format human for detailed information")
+        else:
+            click.echo("\n✅ No critical security issues found")
+            
+    except Exception as e:
+        click.echo(f"❌ Security scan failed: {e}")
 
 
 @cli.command()

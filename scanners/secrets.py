@@ -156,6 +156,16 @@ class SecretScanner:
         if '/' in value and ('.py' in context or '.md' in context or '.txt' in context):
             return True
         
+        # Skip if it's a severity level or enum value (but only in specific contexts)
+        if value.upper() in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']:
+            # Only skip if it's clearly in a dictionary or enum context
+            if ':' in context and ('=' in context or 'severity' in context or 'level' in context):
+                return True
+        
+        # Skip if it's in a comment
+        if '#' in context and context.find('#') < context.find(value.lower()):
+            return True
+        
         return False
     
     def scan_commit(self, commit_hash: str, git_dir: str = ".") -> List[Dict[str, Any]]:
