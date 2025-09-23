@@ -16,8 +16,13 @@ A proof-of-concept tool to sync branches and commits between [JJ](https://github
 - **Severity Levels**: Critical, High, Medium, Low classification
 - **Multiple Scan Modes**: Recent commits, specific commit, or integrated with sync
 
-### Planned Features
-- **Week 3**: AI commit assistance
+### Week 3 ✅
+- **AI Commit Assistant**: Generate intelligent commit messages from git diffs
+- **Multiple Styles**: Conventional commits, semantic commits, simple messages
+- **Fallback Mode**: Works without external APIs using local analysis
+- **LLM Integration**: Ready for OpenAI, Anthropic, and other providers
+- **Interactive Mode**: Guided commit message generation
+- **Smart Analysis**: Detects file types, change patterns, and semantic meaning
 
 ## Project Structure
 ```
@@ -74,6 +79,24 @@ python sync.py scan --git-dir /path/to/git --commit abc123
 python sync.py scan --git-dir /path/to/git --format json
 ```
 
+### AI Commit Assistant
+```bash
+# Generate commit message suggestions (local analysis)
+python sync.py suggest-message --git-dir /path/to/git
+
+# Interactive mode with guided assistance
+python sync.py suggest-message --git-dir /path/to/git --interactive
+
+# Generate multiple suggestions
+python sync.py suggest-message --git-dir /path/to/git --count 5
+
+# Use different commit message styles
+python sync.py suggest-message --git-dir /path/to/git --style semantic
+
+# With external LLM (when API key provided)
+python sync.py suggest-message --git-dir /path/to/git --model openai --api-key YOUR_API_KEY
+```
+
 ### List Git branches
 ```bash
 python sync.py list-branches --git-dir /path/to/git
@@ -84,6 +107,7 @@ python sync.py list-branches --git-dir /path/to/git
 python sync.py --help
 python sync.py sync --help
 python sync.py scan --help
+python sync.py suggest-message --help
 python sync.py list-branches --help
 ```
 
@@ -108,6 +132,29 @@ The tool includes comprehensive security scanning capabilities:
 ### Output Formats
 - **Human**: Detailed, color-coded reports for developers
 - **JSON**: Machine-readable format for CI/CD pipelines
+
+## AI Commit Assistant
+
+The tool includes intelligent commit message generation:
+
+### Features
+- **Local Analysis**: Works without external APIs using git diff analysis
+- **Multiple Styles**: Conventional commits, semantic commits, simple messages
+- **Smart Detection**: Identifies file types, change patterns, and semantic meaning
+- **Interactive Mode**: Guided assistance for commit message creation
+- **LLM Ready**: Prepared for integration with OpenAI, Anthropic, and other providers
+
+### Commit Message Styles
+- **Conventional**: `feat(scope): add new feature` (default)
+- **Semantic**: `feat(scope): add new feature` (similar to conventional)
+- **Simple**: `Add new feature` (plain text)
+
+### Analysis Capabilities
+- **File Type Detection**: Recognizes Python, JavaScript, documentation, config files
+- **Change Classification**: Identifies additions, deletions, refactoring, bug fixes
+- **Scope Detection**: Extracts meaningful scope from file paths
+- **Breaking Changes**: Detects potential breaking changes
+- **Function Analysis**: Identifies modified functions and classes
 
 ## Development
 

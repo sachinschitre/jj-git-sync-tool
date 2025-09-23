@@ -10,6 +10,7 @@ import subprocess
 import click
 from git import Repo
 from scanners.secrets import scan_recent_commits_for_secrets, generate_security_report
+from ai.commitgen import suggest_commit_messages, generate_commit_message, CommitAssistant
 
 
 @click.group()
@@ -195,6 +196,57 @@ def scan(git_dir, format, commits, commit):
             
     except Exception as e:
         click.echo(f"❌ Security scan failed: {e}")
+
+
+@cli.command()
+@click.option("--git-dir", default=".", help="Path to Git repo")
+@click.option("--style", type=click.Choice(['conventional', 'semantic', 'simple']), default='conventional', help="Commit message style")
+@click.option("--count", default=3, help="Number of suggestions to generate")
+@click.option("--model", default="local", help="AI model provider (local, openai, anthropic)")
+@click.option("--api-key", help="API key for external LLM services")
+@click.option("--interactive", is_flag=True, help="Interactive mode for commit assistance")
+def suggest_message(git_dir, style, count, model, api_key, interactive):
+    """
+    Generate AI-powered commit message suggestions.
+    """
+    try:
+        if interactive:
+            # Interactive mode
+            assistant = CommitAssistant(git_dir, model, api_key)
+            suggestion = assistant.interactive_commit()
+            
+            if suggestion:
+                click.echo(f"\n✅ Suggested commit message:")
+                click.echo(f"   {suggestion}")
+            else:
+                click.echo("❌ No suggestions generated")
+        else:
+            # Non-interactive mode
+            click.echo("🤖 Generating AI commit message suggestions...")
+            
+            if model == "local":
+                click.echo("   Using local analysis (no external APIs)")
+            else:
+                click.echo(f"   Using {model} model")
+            
+            suggestions = suggest_commit_messages(git_dir, count, model, api_key)
+            
+            if suggestions:
+                click.echo(f"\n📝 Generated {len(suggestions)} suggestions:")
+                click.echo("=" * 60)
+                
+                for i, suggestion in enumerate(suggestions, 1):
+                    click.echo(f"{i}. {suggestion}")
+                
+                click.echo("\n💡 Usage:")
+                click.echo("   git commit -m \"<your-chosen-message>\"")
+                click.echo("   Or use --interactive for guided assistance")
+            else:
+                click.echo("❌ No suggestions generated")
+                
+    except Exception as e:
+        click.echo(f"❌ Failed to generate suggestions: {e}")
+        click.echo("💡 Make sure you have staged changes: git add <files>")
 
 
 if __name__ == "__main__":
