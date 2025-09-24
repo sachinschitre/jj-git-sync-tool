@@ -11,6 +11,7 @@ import click
 from git import Repo
 from scanners.secrets import scan_recent_commits_for_secrets, generate_security_report
 from ai.commitgen import suggest_commit_messages, generate_commit_message, CommitAssistant
+from dashboard import create_dashboard, display_quick_status
 
 
 @click.group()
@@ -42,8 +43,20 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
         
         # Check if this is the correct JJ tool (should contain "jj" version info)
         if "jj" not in result.stdout.lower() and "version" not in result.stdout.lower():
-            click.echo("❌ Wrong 'jj' command found. Please install JJ version control system from https://github.com/jj-vcs/jj")
-            click.echo("   Current 'jj' command appears to be a different tool.")
+            click.echo("❌ Wrong 'jj' command found!")
+            click.echo("")
+            click.echo("🔧 Expected: JJ version control system")
+            click.echo("📦 Install from: https://github.com/jj-vcs/jj")
+            click.echo("")
+            click.echo("💡 Alternative: Use other features without JJ:")
+            click.echo("   python sync.py scan          # Security scanning")
+            click.echo("   python sync.py suggest-message  # AI commit assistant")
+            click.echo("   python sync.py dashboard     # View status")
+            click.echo("")
+            # Continue to security scan even if JJ sync fails
+            if scan:
+                click.echo("⚠️  JJ sync failed, but continuing with security scan...")
+                run_security_scan_only(git_dir, scan_format, scan_commits)
             return
             
         # Try the actual JJ git export command
@@ -55,19 +68,34 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
         click.echo("✅ JJ export successful")
     except subprocess.CalledProcessError as e:
         click.echo(f"❌ JJ export failed: {e}")
-        click.echo("💡 Make sure you have the correct JJ version control system installed")
-        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        click.echo("")
+        click.echo("🔧 JJ version control system issue detected")
+        click.echo("📦 Install from: https://github.com/jj-vcs/jj")
+        click.echo("")
+        click.echo("💡 Alternative: Use other features without JJ:")
+        click.echo("   python sync.py scan          # Security scanning")
+        click.echo("   python sync.py suggest-message  # AI commit assistant")
+        click.echo("   python sync.py dashboard     # View status")
+        click.echo("")
         # Continue to security scan even if JJ sync fails
         if scan:
-            click.echo("\n⚠️  JJ sync failed, but continuing with security scan...")
+            click.echo("⚠️  JJ sync failed, but continuing with security scan...")
             run_security_scan_only(git_dir, scan_format, scan_commits)
         return
     except FileNotFoundError:
-        click.echo("❌ JJ command not found. Please install JJ version control system.")
-        click.echo("   Install from: https://github.com/jj-vcs/jj")
+        click.echo("❌ JJ command not found!")
+        click.echo("")
+        click.echo("🔧 JJ version control system not installed")
+        click.echo("📦 Install from: https://github.com/jj-vcs/jj")
+        click.echo("")
+        click.echo("💡 Alternative: Use other features without JJ:")
+        click.echo("   python sync.py scan          # Security scanning")
+        click.echo("   python sync.py suggest-message  # AI commit assistant")
+        click.echo("   python sync.py dashboard     # View status")
+        click.echo("")
         # Continue to security scan even if JJ sync fails
         if scan:
-            click.echo("\n⚠️  JJ not found, but continuing with security scan...")
+            click.echo("⚠️  JJ not found, but continuing with security scan...")
             run_security_scan_only(git_dir, scan_format, scan_commits)
         return
 
@@ -99,7 +127,11 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
         return
 
     click.echo("🎉 Sync complete!")
-    
+
+    # Log successful sync operation
+    dashboard = create_dashboard()
+    dashboard.log_sync_operation(git_dir, jj_dir, True, scan_enabled=scan)
+
     # Step 3: Security scan (if requested)
     if scan:
         click.echo("\n🔍 Running security scan...")
@@ -107,7 +139,10 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
             secrets = scan_recent_commits_for_secrets(git_dir, scan_commits)
             report = generate_security_report(secrets, scan_format)
             click.echo(report)
-            
+
+            # Log scan results
+            dashboard.log_scan_results(git_dir, secrets, scan_format)
+
             # Count critical/high severity issues
             critical_high = [s for s in secrets if s['severity'] in ['CRITICAL', 'HIGH']]
             if critical_high:
@@ -116,7 +151,7 @@ def sync(git_dir, jj_dir, scan, scan_format, scan_commits):
                     click.echo("💡 Use --scan-format human for detailed information")
             else:
                 click.echo("\n✅ No critical security issues found")
-                
+
         except Exception as e:
             click.echo(f"❌ Security scan failed: {e}")
 
@@ -181,10 +216,14 @@ def scan(git_dir, format, commits, commit):
             # Scan recent commits
             secrets = scan_recent_commits_for_secrets(git_dir, commits)
             click.echo(f"Scanning last {commits} commits")
-        
+
         report = generate_security_report(secrets, format)
         click.echo(report)
-        
+
+        # Log scan results
+        dashboard = create_dashboard()
+        dashboard.log_scan_results(git_dir, secrets, format)
+
         # Summary
         critical_high = [s for s in secrets if s['severity'] in ['CRITICAL', 'HIGH']]
         if critical_high:
@@ -238,6 +277,10 @@ def suggest_message(git_dir, style, count, model, api_key, interactive):
                 for i, suggestion in enumerate(suggestions, 1):
                     click.echo(f"{i}. {suggestion}")
                 
+                # Log AI suggestions
+                dashboard = create_dashboard()
+                dashboard.log_ai_suggestions(git_dir, suggestions, style)
+                
                 click.echo("\n💡 Usage:")
                 click.echo("   git commit -m \"<your-chosen-message>\"")
                 click.echo("   Or use --interactive for guided assistance")
@@ -247,6 +290,23 @@ def suggest_message(git_dir, style, count, model, api_key, interactive):
     except Exception as e:
         click.echo(f"❌ Failed to generate suggestions: {e}")
         click.echo("💡 Make sure you have staged changes: git add <files>")
+
+
+@cli.command()
+@click.option("--quick", is_flag=True, help="Show quick status instead of full dashboard")
+def dashboard(quick):
+    """
+    Display the JJ-Git Sync Tool dashboard.
+    """
+    try:
+        if quick:
+            display_quick_status()
+        else:
+            dashboard = create_dashboard()
+            dashboard.display_dashboard()
+    except Exception as e:
+        click.echo(f"❌ Dashboard failed: {e}")
+        click.echo("💡 Try running with --quick for a simple status view")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,48 @@
 # JJ–Git Sync Tool (PoC)
 
-A proof-of-concept tool to sync branches and commits between [JJ](https://github.com/jj-vcs/jj) and Git.
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![JJ](https://img.shields.io/badge/JJ-Compatible-orange.svg)](https://github.com/jj-vcs/jj)
+[![Security](https://img.shields.io/badge/Security-Scanner-red.svg)](#security-scanning)
+[![AI](https://img.shields.io/badge/AI-Assistant-purple.svg)](#ai-commit-assistant)
+
+A proof-of-concept tool to sync branches and commits between [JJ](https://github.com/jj-vcs/jj) and Git, with built-in security scanning and AI-powered commit assistance.
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run dashboard
+python sync.py dashboard
+
+# Security scan
+python sync.py scan
+
+# AI commit suggestions
+python sync.py suggest-message
+```
+
+## 📊 Workflow Overview
+
+```mermaid
+graph TD
+    A[Git Repository] --> B[JJ-Git Sync Tool]
+    B --> C[JJ Workspace]
+    B --> D[Security Scanner]
+    B --> E[AI Commit Assistant]
+    B --> F[Dashboard]
+    
+    D --> G[Secret Detection]
+    D --> H[Compliance Reports]
+    
+    E --> I[Conventional Commits]
+    E --> J[Smart Analysis]
+    
+    F --> K[Sync History]
+    F --> L[Real-time Status]
+```
 
 ## Features
 
@@ -23,6 +65,13 @@ A proof-of-concept tool to sync branches and commits between [JJ](https://github
 - **LLM Integration**: Ready for OpenAI, Anthropic, and other providers
 - **Interactive Mode**: Guided commit message generation
 - **Smart Analysis**: Detects file types, change patterns, and semantic meaning
+
+### Week 4 ✅
+- **CLI Dashboard**: Beautiful terminal interface with Rich formatting
+- **Real-time Status**: Live sync history, security scans, and AI suggestions
+- **Demo Ready**: Complete workflow demonstration in under 2 minutes
+- **Enhanced Error Handling**: Clear messages and graceful fallbacks
+- **Documentation**: Comprehensive demo guide and visual diagrams
 
 ## Project Structure
 ```
@@ -97,6 +146,15 @@ python sync.py suggest-message --git-dir /path/to/git --style semantic
 python sync.py suggest-message --git-dir /path/to/git --model openai --api-key YOUR_API_KEY
 ```
 
+### Dashboard
+```bash
+# Full dashboard with Rich UI
+python sync.py dashboard
+
+# Quick status overview
+python sync.py dashboard --quick
+```
+
 ### List Git branches
 ```bash
 python sync.py list-branches --git-dir /path/to/git
@@ -108,6 +166,7 @@ python sync.py --help
 python sync.py sync --help
 python sync.py scan --help
 python sync.py suggest-message --help
+python sync.py dashboard --help
 python sync.py list-branches --help
 ```
 
@@ -155,6 +214,31 @@ The tool includes intelligent commit message generation:
 - **Scope Detection**: Extracts meaningful scope from file paths
 - **Breaking Changes**: Detects potential breaking changes
 - **Function Analysis**: Identifies modified functions and classes
+
+## CLI Dashboard
+
+The tool includes a beautiful terminal dashboard built with Rich:
+
+### Features
+- **Real-time Status**: Live updates of sync operations, security scans, and AI suggestions
+- **Rich UI**: Beautiful colors, tables, and panels for better visibility
+- **History Tracking**: Last 5 sync operations with timestamps and status
+- **Quick Overview**: Fast status check with `--quick` flag
+- **Cross-platform**: Works on all terminals with color support
+
+### Dashboard Sections
+- **Sync History**: Recent operations with success/failure status
+- **Security Status**: Latest scan results and issue counts
+- **AI Assistant**: Recent commit message suggestions and styles
+
+## Demo & Presentation
+
+The tool is designed for live demonstrations:
+
+- **📋 Demo Guide**: See `demo.md` for complete step-by-step workflow
+- **⏱️ Time**: Complete demo runs in under 2 minutes
+- **🎯 Focus**: Showcases all major features efficiently
+- **🛡️ Fallbacks**: Graceful handling when JJ is not installed
 
 ## Development
 
